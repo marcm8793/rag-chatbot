@@ -1,5 +1,5 @@
 import { DataAPIClient } from "@datastax/astra-db-ts";
-import { PuppeteerWebBaseLoader } from "langchain/document_loaders/web/puppeteer";
+import { PuppeteerWebBaseLoader } from "@langchain/community/document_loaders/web/puppeteer";
 import OpenAI from "openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import "dotenv/config";
@@ -64,8 +64,19 @@ const loadSampleData = async () => {
 
 const scrapePage = async (url: string) => {
   const loader = new PuppeteerWebBaseLoader(url, {
-    lauchOptions: {
+    launchOptions: {
       headless: true,
     },
+    gotoOptions: {
+      waitUntil: "domcontentloaded",
+    },
+    evaluate: async (page, browser) => {
+      const result = await page.evaluate(() => document.body.innerHTML);
+      await browser.close();
+      return result;
+    },
   });
+  return (await loader.scrape())?.replace(/<[^>]*>?/gm, "");
 };
+
+createCollection().then(() => loadSampleData());
